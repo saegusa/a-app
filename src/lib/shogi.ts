@@ -41,10 +41,10 @@ export function createInitialState(): GameState {
     place(0, c, type as PieceType, 'white');
     place(8, c, type as PieceType, 'black');
   });
-  place(1, 1, 'bishop', 'white');
-  place(1, 7, 'rook', 'white');
-  place(7, 1, 'rook', 'black');
-  place(7, 7, 'bishop', 'black');
+  place(1, 1, 'rook', 'white');
+  place(1, 7, 'bishop', 'white');
+  place(7, 1, 'bishop', 'black');
+  place(7, 7, 'rook', 'black');
 
   for (let c = 0; c < 9; c += 1) {
     place(2, c, 'pawn', 'white');
@@ -167,9 +167,9 @@ function stepMoves(state: GameState, from: Position, piece: Piece, vectors: Posi
     if (!inside(to)) continue;
     const target = state.board[to.row][to.col];
     if (target && target.owner === piece.owner) continue;
-    moves.push(withPromotion(state, from, to, piece, target));
+    moves.push(...withPromotion(state, from, to, piece, target));
   }
-  return moves.flat();
+  return moves;
 }
 
 function rayMoves(state: GameState, from: Position, piece: Piece, vectors: Position[]): Move[] {
@@ -180,13 +180,13 @@ function rayMoves(state: GameState, from: Position, piece: Piece, vectors: Posit
     while (inside({ row: r, col: c })) {
       const target = state.board[r][c];
       if (target && target.owner === piece.owner) break;
-      moves.push(withPromotion(state, from, { row: r, col: c }, piece, target));
+      moves.push(...withPromotion(state, from, { row: r, col: c }, piece, target));
       if (target) break;
       r += v.row;
       c += v.col;
     }
   }
-  return moves.flat();
+  return moves;
 }
 
 function withPromotion(state: GameState, from: Position, to: Position, piece: Piece, target?: Piece | null): Move[] {

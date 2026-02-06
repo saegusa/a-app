@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { applyMove, cpuPickMove, createInitialState, GameState, generateMoves, Move, pieceLabel, PieceType, Player } from '../lib/shogi';
+import { applyMove, cpuPickMove, createInitialState, GameState, generateMoves, Move, Piece, pieceLabel, PieceType, Player } from '../lib/shogi';
 
 @Component({
   selector: 'app-root',
@@ -16,7 +16,7 @@ export class AppComponent {
   legalMoves: Move[] = [];
   log: string[] = [];
 
-  get board(): (ReturnType<typeof createInitialState>['board'][number][number])[] {
+  get board(): (Piece | null)[][] {
     return this.state.board;
   }
 
@@ -50,11 +50,11 @@ export class AppComponent {
     }
   }
 
-  selectDrop(type: PieceType): void {
+  selectDrop(type: string): void {
     if (this.state.turn !== 'black') return;
     this.selected = null;
-    this.selectedDrop = type;
-    this.legalMoves = generateMoves(this.state, 'black').filter((m) => m.drop === type);
+    this.selectedDrop = type as PieceType;
+    this.legalMoves = generateMoves(this.state, 'black').filter((m) => m.drop === type as PieceType);
   }
 
   reset(): void {
@@ -80,8 +80,8 @@ export class AppComponent {
     return piece.owner === 'black' ? base : `v${base}`;
   }
 
-  countCaptured(player: Player, type: PieceType): number {
-    return this.state.captured[player].filter((p) => p === type).length;
+  countCaptured(player: Player, type: string): number {
+    return this.state.captured[player].filter((p) => p === type as PieceType).length;
   }
 
   private playMove(move: Move): void {
