@@ -1,0 +1,43 @@
+<main class="container">
+  <header>
+    <h1>将棋 MVP (Angular)</h1>
+    <p>先手（あなた）vs CPU（ランダム合法手）</p>
+    <p>手番: <strong>{{ turnLabel }}</strong></p>
+    <button (click)="reset()">リセット</button>
+  </header>
+
+  <section class="layout">
+    <div class="board">
+      @for (row of board; track $index; let r = $index) {
+        @for (cell of row; track $index; let c = $index) {
+          <button
+            class="cell"
+            [class.dark]="(r + c) % 2 === 1"
+            [class.selected]="isSelected(r, c)"
+            [class.legal]="canMoveTo(r, c)"
+            (click)="onCellClick(r, c)">
+            {{ label(r, c) }}
+          </button>
+        }
+      }
+    </div>
+
+    <aside class="panel">
+      <h2>持ち駒（先手）</h2>
+      <div class="drops">
+        @for (type of ['rook','bishop','gold','silver','knight','lance','pawn']; track type) {
+          <button (click)="selectDrop(type)">
+            {{ type }} x{{ countCaptured('black', type) }}
+          </button>
+        }
+      </div>
+
+      <h2>手数ログ</h2>
+      <ol>
+        @for (line of log.slice(0, 12); track $index) {
+          <li>{{ line }}</li>
+        }
+      </ol>
+    </aside>
+  </section>
+</main>
