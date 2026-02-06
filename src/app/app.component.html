@@ -16,7 +16,9 @@
             [class.selected]="isSelected(r, c)"
             [class.legal]="canMoveTo(r, c)"
             (click)="onCellClick(r, c)">
-            {{ label(r, c) }}
+            @if (cell) {
+              <img class="piece" [src]="pieceImage(r, c)" [alt]="label(r, c)" />
+            }
           </button>
         }
       }

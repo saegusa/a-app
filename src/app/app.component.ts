@@ -15,6 +15,7 @@ export class AppComponent {
   selectedDrop: PieceType | null = null;
   legalMoves: Move[] = [];
   log: string[] = [];
+  private svgCache = new Map<string, string>();
 
   get board(): (Piece | null)[][] {
     return this.state.board;
@@ -36,7 +37,8 @@ export class AppComponent {
 
     const piece = this.state.board[row][col];
     if (this.selected && this.legalMoves.length > 0) {
-      const move = this.legalMoves.find((m) => m.to.row === row && m.to.col === col);
+      const candidates = this.legalMoves.filter((m) => m.to.row === row && m.to.col === col);
+      const move = this.pickMoveCandidate(candidates);
       if (move) {
         this.playMove(move);
         return;
@@ -80,6 +82,20 @@ export class AppComponent {
     return piece.owner === 'black' ? base : `v${base}`;
   }
 
+  pieceImage(row: number, col: number): string {
+    const piece = this.state.board[row][col];
+    if (!piece) return '';
+
+    const key = `${piece.owner}:${piece.type}:${piece.promoted}`;
+    const hit = this.svgCache.get(key);
+    if (hit) return hit;
+
+    const svg = this.createPieceSvg(piece);
+    const url = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    this.svgCache.set(key, url);
+    return url;
+  }
+
   countCaptured(player: Player, type: string): number {
     return this.state.captured[player].filter((p) => p === type as PieceType).length;
   }
@@ -106,5 +122,27 @@ export class AppComponent {
     }
     this.state = applyMove(this.state, picked);
     this.log.unshift(`CPU: ${picked.drop ? '打' + picked.drop : `${picked.from?.row},${picked.from?.col}`} -> ${picked.to.row},${picked.to.col}${picked.promote ? ' 成' : ''}`);
+  }
+
+  private pickMoveCandidate(candidates: Move[]): Move | undefined {
+    if (candidates.length <= 1) return candidates[0];
+
+    const promote = candidates.find((m) => m.promote);
+    const normal = candidates.find((m) => !m.promote);
+    if (!promote || !normal) return candidates[0];
+
+    return confirm('成りますか？') ? promote : normal;
+  }
+
+  private createPieceSvg(piece: Piece): string {
+    const text = pieceLabel(piece);
+    const rotation = piece.owner === 'white' ? ' rotate(180 50 50)' : '';
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-label="${text}">
+  <polygon points="50,6 92,22 82,94 18,94 8,22" fill="#f5df9e" stroke="#6d4c1f" stroke-width="4"/>
+  <g transform="${rotation.trim()}">
+    <text x="50" y="62" text-anchor="middle" font-size="34" font-family="'Hiragino Mincho ProN','Yu Mincho',serif" fill="#231400">${text}</text>
+  </g>
+</svg>`;
   }
 }

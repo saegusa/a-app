@@ -193,10 +193,25 @@ function withPromotion(state: GameState, from: Position, to: Position, piece: Pi
   const base: Move = { from, to, piece, captured: target ?? undefined };
   if (!PROMOTABLE.includes(piece.type) || piece.promoted) return [base];
 
+  if (mustPromote(piece, to)) return [{ ...base, promote: true }];
+
   const zone = piece.owner === 'black' ? [0, 1, 2] : [6, 7, 8];
   if (!zone.includes(from.row) && !zone.includes(to.row)) return [base];
 
   return [base, { ...base, promote: true }];
+}
+
+function mustPromote(piece: Piece, to: Position): boolean {
+  const furthest = piece.owner === 'black' ? 0 : 8;
+  const furthestTwo = piece.owner === 'black' ? [0, 1] : [7, 8];
+
+  if (piece.type === 'pawn' || piece.type === 'lance') {
+    return to.row === furthest;
+  }
+  if (piece.type === 'knight') {
+    return furthestTwo.includes(to.row);
+  }
+  return false;
 }
 
 function inside(pos: Position): boolean {
@@ -279,6 +294,14 @@ export function pieceLabel(piece: Piece): string {
     lance: '香',
     pawn: '歩'
   };
+  const promotedMap: Partial<Record<PieceType, string>> = {
+    rook: '龍',
+    bishop: '馬',
+    silver: '成銀',
+    knight: '成桂',
+    lance: '成香',
+    pawn: 'と'
+  };
   const label = map[piece.type];
-  return piece.promoted ? `成${label}` : label;
+  return piece.promoted ? (promotedMap[piece.type] ?? `成${label}`) : label;
 }
