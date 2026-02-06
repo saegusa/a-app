@@ -1,42 +1,80 @@
 <main class="container">
-  <header>
-    <h1>将棋 MVP (Angular)</h1>
-    <p>先手（あなた）vs CPU（ランダム合法手）</p>
-    <p>手番: <strong>{{ turnLabel }}</strong></p>
-    <button (click)="reset()">リセット</button>
+  <header class="topbar">
+    <div>
+      <h1>激指風 将棋ボード</h1>
+      <p>{{ furigomaResult }} / CPU: {{ cpuLevel === 'random' ? 'ランダム合法手' : 'やや強め(貪欲)' }}</p>
+      <p>手番: <strong>{{ turnLabel }}</strong>（{{ currentActor }}）</p>
+    </div>
+    <div class="controls">
+      <label>
+        CPU強さ
+        <select [(ngModel)]="cpuLevel">
+          <option value="random">ランダム合法手</option>
+          <option value="greedy">やや強め（駒得優先）</option>
+        </select>
+      </label>
+      <button (click)="reset()">振り駒して新規対局</button>
+    </div>
   </header>
 
   <section class="layout">
-    <div class="board">
-      @for (row of board; track $index; let r = $index) {
-        @for (cell of row; track $index; let c = $index) {
-          <button
-            class="cell"
-            [class.dark]="(r + c) % 2 === 1"
-            [class.selected]="isSelected(r, c)"
-            [class.legal]="canMoveTo(r, c)"
-            (click)="onCellClick(r, c)">
-            @if (cell) {
-              <img class="piece" [src]="pieceImage(r, c)" [alt]="label(r, c)" />
-            }
+    <aside class="side-panel">
+      <h2>{{ cpuLabel }} 持ち駒</h2>
+      <div class="captured-list enemy">
+        @for (type of pieceOrder; track type) {
+          <button class="capture-chip" disabled>
+            <span class="piece-label">{{ pieceName(type) }}</span>
+            <span>x{{ countCaptured(playerSide === 'black' ? 'white' : 'black', type) }}</span>
           </button>
         }
-      }
+      </div>
+    </aside>
+
+    <div class="board-wrap">
+      <div class="files">
+        @for (f of files; track f) {
+          <span>{{ f }}</span>
+        }
+      </div>
+
+      <div class="center-row">
+        <div class="board">
+          @for (row of board; track $index; let r = $index) {
+            @for (cell of row; track $index; let c = $index) {
+              <button
+                class="cell"
+                [class.selected]="isSelected(r, c)"
+                [class.legal]="canMoveTo(r, c)"
+                (click)="onCellClick(r, c)">
+                @if (cell) {
+                  <img class="piece" [src]="pieceImage(r, c)" [alt]="label(r, c)" />
+                }
+              </button>
+            }
+          }
+        </div>
+        <div class="ranks">
+          @for (rank of ranks; track rank) {
+            <span>{{ rank }}</span>
+          }
+        </div>
+      </div>
     </div>
 
-    <aside class="panel">
-      <h2>持ち駒（先手）</h2>
-      <div class="drops">
-        @for (type of ['rook','bishop','gold','silver','knight','lance','pawn']; track type) {
-          <button (click)="selectDrop(type)">
-            {{ type }} x{{ countCaptured('black', type) }}
+    <aside class="side-panel">
+      <h2>{{ playerLabel }} 持ち駒</h2>
+      <div class="captured-list">
+        @for (type of pieceOrder; track type) {
+          <button class="capture-chip" [disabled]="countCaptured(playerSide, type) === 0 || state.turn !== playerSide" (click)="selectDrop(type)">
+            <span class="piece-label">{{ pieceName(type) }}</span>
+            <span>x{{ countCaptured(playerSide, type) }}</span>
           </button>
         }
       </div>
 
-      <h2>手数ログ</h2>
+      <h3>棋譜</h3>
       <ol>
-        @for (line of log.slice(0, 12); track $index) {
+        @for (line of log.slice(0, 14); track $index) {
           <li>{{ line }}</li>
         }
       </ol>

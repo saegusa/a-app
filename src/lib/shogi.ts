@@ -1,5 +1,6 @@
 export type Player = 'black' | 'white';
 export type PieceType = 'king' | 'rook' | 'bishop' | 'gold' | 'silver' | 'knight' | 'lance' | 'pawn';
+export type CpuLevel = 'random' | 'greedy';
 
 export interface Piece {
   type: PieceType;
@@ -167,7 +168,7 @@ function stepMoves(state: GameState, from: Position, piece: Piece, vectors: Posi
     if (!inside(to)) continue;
     const target = state.board[to.row][to.col];
     if (target && target.owner === piece.owner) continue;
-    moves.push(...withPromotion(state, from, to, piece, target));
+    moves.push(...withPromotion(from, to, piece, target));
   }
   return moves;
 }
@@ -180,7 +181,7 @@ function rayMoves(state: GameState, from: Position, piece: Piece, vectors: Posit
     while (inside({ row: r, col: c })) {
       const target = state.board[r][c];
       if (target && target.owner === piece.owner) break;
-      moves.push(...withPromotion(state, from, { row: r, col: c }, piece, target));
+      moves.push(...withPromotion(from, { row: r, col: c }, piece, target));
       if (target) break;
       r += v.row;
       c += v.col;
@@ -189,33 +190,40 @@ function rayMoves(state: GameState, from: Position, piece: Piece, vectors: Posit
   return moves;
 }
 
-function withPromotion(state: GameState, from: Position, to: Position, piece: Piece, target?: Piece | null): Move[] {
-  const base: Move = { from, to, piece, captured: target ?? undefined };
-  if (!PROMOTABLE.includes(piece.type) || piece.promoted) return [base];
+function withPromotion(from: Position, to: Position, piece: Piece, captured?: Piece | null): Move[] {
+  const base: Move = {
+    from,
+    to,
+    piece,
+    captured: captured ?? undefined
+  };
 
-  if (mustPromote(piece, to)) return [{ ...base, promote: true }];
+  if (!PROMOTABLE.includes(piece.type) || piece.promoted) {
+    return [base];
+  }
 
-  const zone = piece.owner === 'black' ? [0, 1, 2] : [6, 7, 8];
-  if (!zone.includes(from.row) && !zone.includes(to.row)) return [base];
+  const inZone = promotionZone(piece.owner, from.row) || promotionZone(piece.owner, to.row);
+  if (!inZone) return [base];
+
+  const mandatory =
+    (piece.type === 'pawn' || piece.type === 'lance') && reachesDeadEnd(piece.owner, to.row, 1) ||
+    piece.type === 'knight' && reachesDeadEnd(piece.owner, to.row, 2);
+
+  if (mandatory) return [{ ...base, promote: true }];
 
   return [base, { ...base, promote: true }];
 }
 
-function mustPromote(piece: Piece, to: Position): boolean {
-  const furthest = piece.owner === 'black' ? 0 : 8;
-  const furthestTwo = piece.owner === 'black' ? [0, 1] : [7, 8];
-
-  if (piece.type === 'pawn' || piece.type === 'lance') {
-    return to.row === furthest;
-  }
-  if (piece.type === 'knight') {
-    return furthestTwo.includes(to.row);
-  }
-  return false;
+function promotionZone(owner: Player, row: number): boolean {
+  return owner === 'black' ? row <= 2 : row >= 6;
 }
 
-function inside(pos: Position): boolean {
-  return pos.row >= 0 && pos.row < 9 && pos.col >= 0 && pos.col < 9;
+function reachesDeadEnd(owner: Player, row: number, steps: number): boolean {
+  return owner === 'black' ? row < steps : row > 8 - steps;
+}
+
+function inside(p: Position): boolean {
+  return p.row >= 0 && p.row < 9 && p.col >= 0 && p.col < 9;
 }
 
 function kingVectors(): Position[] {
@@ -277,10 +285,49 @@ function orthVectors(): Position[] {
   ];
 }
 
-export function cpuPickMove(state: GameState): Move | null {
+export function cpuPickMove(state: GameState, level: CpuLevel = 'random'): Move | null {
   const moves = generateMoves(state, state.turn);
   if (moves.length === 0) return null;
-  return moves[Math.floor(Math.random() * moves.length)];
+
+  if (level === 'random') {
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
+
+  const scored = moves
+    .map((move) => ({ move, score: evaluateMove(state, move) + Math.random() * 0.01 }))
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0].move;
+}
+
+function evaluateMove(state: GameState, move: Move): number {
+  let score = 0;
+  if (move.captured?.type === 'king') return 9999;
+  if (move.captured) score += pieceValue(move.captured.type) * 2.5;
+  if (move.promote) score += 1.5;
+  if (move.drop === 'pawn') score += 0.2;
+
+  const next = applyMove(state, move);
+  const enemyMoves = generateMoves(next, next.turn);
+  if (enemyMoves.some((enemy) => enemy.captured?.type === 'king')) {
+    score -= 50;
+  }
+
+  return score;
+}
+
+function pieceValue(type: PieceType): number {
+  const values: Record<PieceType, number> = {
+    king: 100,
+    rook: 9,
+    bishop: 8,
+    gold: 6,
+    silver: 5,
+    knight: 3,
+    lance: 3,
+    pawn: 1
+  };
+  return values[type];
 }
 
 export function pieceLabel(piece: Piece): string {
