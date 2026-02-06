@@ -1,38 +1,55 @@
-# Onboarding Guide
+# オンボーディングガイド
 
-## 1. Repository overview
-- The repository currently contains a very small scaffold.
-- `README.md` only has the project title (`a-app`) and no setup/run/build instructions yet.
-- There is no source directory (`src/`), test directory, or CI configuration in the current state.
+このドキュメントは、新規参加者が最短で開発に参加できるよう、
+**現状の構造**・**重要事項**・**次に学ぶ/整備すること**をまとめたものです。
 
-## 2. Important things to know
-1. **Project is at an early stage**  
-   Treat this repository as a base skeleton. Before adding features, agree on architecture and standards.
+## 1. コードベースの一般的な構造（現状）
+- 現時点のリポジトリは最小スキャフォールドです。
+- 主要ファイルは以下です。
+  - `README.md`: プロジェクト入口（このガイドへの導線）
+  - `docs/ONBOARDING.md`: 新規参加者向けの初期理解ドキュメント
+- まだ存在しないもの（今後整備予定）:
+  - `src/` などの実装ディレクトリ
+  - `tests/` などのテスト構成
+  - CI 設定（例: GitHub Actions）
 
-2. **Establish conventions first**  
-   Since there are no conventions documented yet, define these early:
-   - language/runtime choice
-   - dependency manager
-   - formatting/linting rules
-   - test strategy
-   - branching and release workflow
+## 2. 参加前に知っておくべき重要事項
+1. **このプロジェクトは初期段階**
+   - 実装より先に「何を作るか」「どう作るか」の合意が必要です。
 
-3. **Document as you build**  
-   For every meaningful addition, update README and keep this onboarding guide aligned.
+2. **最初にチームで決めるべき開発規約**
+   - 言語・ランタイム
+   - パッケージ/依存管理
+   - フォーマッタ・リンタ
+   - テスト方針（単体/結合/E2E の範囲）
+   - ブランチ運用・リリース運用
 
-## 3. Suggested learning path for new contributors
-1. Read `README.md` and this guide.
-2. Confirm product goals with the team (what `a-app` should do).
-3. Identify planned stack (frontend/backend/full-stack).
-4. Set up baseline project files:
-   - app source directory
-   - test framework
-   - linter/formatter config
-   - contribution guidelines
-5. Start with a small vertical slice and document run/test commands.
+3. **実装と同時にドキュメントを更新する運用にする**
+   - 仕様・セットアップ・実行方法を後回しにしないことで、オンボーディング負荷を抑えられます。
 
-## 4. Recommended next documents to add
-- `CONTRIBUTING.md`: development flow, coding standards, and PR expectations.
-- `docs/ARCHITECTURE.md`: system design and module boundaries.
-- `docs/SETUP.md`: local environment setup steps.
-- `docs/ROADMAP.md`: short-term and medium-term milestones.
+## 3. 新規参加者向け: 最初の学習・キャッチアップ順
+1. `README.md` と本ドキュメントを読む
+2. チームに以下を確認する
+   - プロダクトの目的/対象ユーザー
+   - 直近の優先機能（MVP 範囲）
+3. 採用予定スタックを確認する（フロント/バック/フルスタック）
+4. 基盤整備の優先順位を把握する
+   - 実装ディレクトリ構成
+   - テスト基盤
+   - lint/format 設定
+   - 開発ルール文書
+5. 小さいタスクを 1 つ担当し、実行手順と学びをドキュメント化する
+
+## 4. 次に作成・学習すると良いドキュメント
+- `CONTRIBUTING.md`
+  - 開発フロー、コーディング規約、レビュー/PR の期待値
+- `docs/ARCHITECTURE.md`
+  - システム構成、責務分割、将来拡張の方針
+- `docs/SETUP.md`
+  - ローカル開発環境のセットアップ手順
+- `docs/ROADMAP.md`
+  - 直近〜中期のマイルストーン
+
+## 5. このガイドの更新方針
+- リポジトリ構造や開発ルールが決まったら、必ずこのファイルを更新してください。
+- 「最初に読む 1 枚」であり続けることを重視します。

@@ -1,6 +1,6 @@
 # a-app
 
-`a-app` is currently a minimal repository scaffold.
+`a-app` は現在、最小構成のリポジトリです。
 
-For new contributors, start with the onboarding guide:
+新規参加者は、まず以下のオンボーディングガイドを読んでください。
 - `docs/ONBOARDING.md`
