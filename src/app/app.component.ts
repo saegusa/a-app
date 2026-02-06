@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { applyMove, cpuPickMove, createInitialState, GameState, generateMoves, Move, Piece, pieceLabel, PieceType, Player } from '../lib/shogi';
+import { FormsModule } from '@angular/forms';
+import { applyMove, CpuLevel, cpuPickMove, createInitialState, GameState, generateMoves, Move, Piece, pieceLabel, PieceType, Player } from '../lib/shogi';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -15,7 +16,17 @@ export class AppComponent {
   selectedDrop: PieceType | null = null;
   legalMoves: Move[] = [];
   log: string[] = [];
+  playerSide: Player = 'black';
+  cpuLevel: CpuLevel = 'random';
+  furigomaResult = '';
+  readonly files = [9, 8, 7, 6, 5, 4, 3, 2, 1];
+  readonly ranks = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  readonly pieceOrder: PieceType[] = ['rook', 'bishop', 'gold', 'silver', 'knight', 'lance', 'pawn'];
   private svgCache = new Map<string, string>();
+
+  constructor() {
+    this.reset();
+  }
 
   get board(): (Piece | null)[][] {
     return this.state.board;
@@ -25,9 +36,24 @@ export class AppComponent {
     return this.state.turn === 'black' ? '先手' : '後手';
   }
 
+  get playerLabel(): string {
+    return this.playerSide === 'black' ? '先手' : '後手';
+  }
+
+  get cpuLabel(): string {
+    return this.playerSide === 'black' ? '後手' : '先手';
+  }
+
+  get currentActor(): string {
+    if (this.state.winner) {
+      return this.state.winner === this.playerSide ? 'あなたの勝ち' : 'CPUの勝ち';
+    }
+    return this.state.turn === this.playerSide ? 'あなたの手番' : 'CPUの手番';
+  }
+
   onCellClick(row: number, col: number): void {
     if (this.state.winner) return;
-    if (this.state.turn !== 'black') return;
+    if (this.state.turn !== this.playerSide) return;
 
     if (this.selectedDrop) {
       const move = this.legalMoves.find((m) => m.drop === this.selectedDrop && m.to.row === row && m.to.col === col);
@@ -45,18 +71,18 @@ export class AppComponent {
       }
     }
 
-    if (piece?.owner === 'black') {
+    if (piece?.owner === this.playerSide) {
       this.selected = { row, col };
       this.selectedDrop = null;
-      this.legalMoves = generateMoves(this.state, 'black').filter((m) => m.from?.row === row && m.from?.col === col);
+      this.legalMoves = generateMoves(this.state, this.playerSide).filter((m) => m.from?.row === row && m.from?.col === col);
     }
   }
 
-  selectDrop(type: string): void {
-    if (this.state.turn !== 'black') return;
+  selectDrop(type: PieceType): void {
+    if (this.state.turn !== this.playerSide) return;
     this.selected = null;
-    this.selectedDrop = type as PieceType;
-    this.legalMoves = generateMoves(this.state, 'black').filter((m) => m.drop === type as PieceType);
+    this.selectedDrop = type;
+    this.legalMoves = generateMoves(this.state, this.playerSide).filter((m) => m.drop === type);
   }
 
   reset(): void {
@@ -65,6 +91,13 @@ export class AppComponent {
     this.selectedDrop = null;
     this.legalMoves = [];
     this.log = [];
+
+    this.playerSide = Math.random() < 0.5 ? 'black' : 'white';
+    this.furigomaResult = this.playerSide === 'black' ? '振り駒: あなたが先手になりました。' : '振り駒: あなたが後手になりました。';
+
+    if (this.state.turn !== this.playerSide) {
+      setTimeout(() => this.cpuTurn(), 200);
+    }
   }
 
   canMoveTo(row: number, col: number): boolean {
@@ -96,32 +129,37 @@ export class AppComponent {
     return url;
   }
 
-  countCaptured(player: Player, type: string): number {
-    return this.state.captured[player].filter((p) => p === type as PieceType).length;
+  countCaptured(player: Player, type: PieceType): number {
+    return this.state.captured[player].filter((p) => p === type).length;
   }
 
+  pieceName(type: PieceType): string {
+    return pieceLabel({ type, owner: 'black', promoted: false });
+  }
+
+
   private playMove(move: Move): void {
-    const actor = this.state.turn === 'black' ? '先手' : 'CPU';
+    const actor = this.state.turn === this.playerSide ? 'あなた' : 'CPU';
     this.state = applyMove(this.state, move);
-    this.log.unshift(`${actor}: ${move.drop ? '打' + move.drop : `${move.from?.row},${move.from?.col}`} -> ${move.to.row},${move.to.col}${move.promote ? ' 成' : ''}`);
+    this.log.unshift(`${actor}: ${move.drop ? '打' + this.pieceName(move.drop) : `${move.from?.row},${move.from?.col}`} → ${move.to.row},${move.to.col}${move.promote ? ' 成' : ''}`);
     this.selected = null;
     this.selectedDrop = null;
     this.legalMoves = [];
 
-    if (!this.state.winner) {
+    if (!this.state.winner && this.state.turn !== this.playerSide) {
       setTimeout(() => this.cpuTurn(), 200);
     }
   }
 
   private cpuTurn(): void {
-    if (this.state.turn !== 'white' || this.state.winner) return;
-    const picked = cpuPickMove(this.state);
+    if (this.state.turn === this.playerSide || this.state.winner) return;
+    const picked = cpuPickMove(this.state, this.cpuLevel);
     if (!picked) {
-      this.state.winner = 'black';
+      this.state.winner = this.playerSide;
       return;
     }
     this.state = applyMove(this.state, picked);
-    this.log.unshift(`CPU: ${picked.drop ? '打' + picked.drop : `${picked.from?.row},${picked.from?.col}`} -> ${picked.to.row},${picked.to.col}${picked.promote ? ' 成' : ''}`);
+    this.log.unshift(`CPU: ${picked.drop ? '打' + this.pieceName(picked.drop) : `${picked.from?.row},${picked.from?.col}`} → ${picked.to.row},${picked.to.col}${picked.promote ? ' 成' : ''}`);
   }
 
   private pickMoveCandidate(candidates: Move[]): Move | undefined {
@@ -139,9 +177,15 @@ export class AppComponent {
     const rotation = piece.owner === 'white' ? ' rotate(180 50 50)' : '';
 
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-label="${text}">
-  <polygon points="50,6 92,22 82,94 18,94 8,22" fill="#f5df9e" stroke="#6d4c1f" stroke-width="4"/>
+  <defs>
+    <linearGradient id="koma" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f2d89a"/>
+      <stop offset="100%" stop-color="#d9ad64"/>
+    </linearGradient>
+  </defs>
+  <polygon points="50,6 90,20 80,93 20,93 10,20" fill="url(#koma)" stroke="#744d1d" stroke-width="4"/>
   <g transform="${rotation.trim()}">
-    <text x="50" y="62" text-anchor="middle" font-size="34" font-family="'Hiragino Mincho ProN','Yu Mincho',serif" fill="#231400">${text}</text>
+    <text x="50" y="63" text-anchor="middle" font-size="36" font-family="'Yu Mincho','Hiragino Mincho ProN',serif" fill="#1d1004">${text}</text>
   </g>
 </svg>`;
   }
